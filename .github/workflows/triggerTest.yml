@@ -1,0 +1,29 @@
+on:
+  repository_dispatch:
+    types: [on-demand-payload]
+
+jobs:
+  run_if_payload:
+    if: ${{ github.event }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          set -x
+          export
+      - env:
+          MESSAGE: ${{ github.event.summary }}
+        run: echo $MESSAGE
+      - env:
+          MESSAGE: ${{ github.event.description }}
+        run: echo $MESSAGE
+
+  run_if_failure:
+    if: ${{ !github.event }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          set -x
+          export
+      - env:
+          MESSAGE: ${{ github.event.client_payload.message }}
+        run: echo $MESSAGE
