@@ -11,10 +11,10 @@ jobs:
           set -x
           export
       - env:
-          MESSAGE: ${{ github.event.summary }}
+          MESSAGE: ${{ github.event.client_payload.summary }}
         run: echo $MESSAGE
       - env:
-          MESSAGE: ${{ github.event.description }}
+          MESSAGE: ${{ github.event.client_payload.description }}
         run: echo $MESSAGE
 
   run_if_failure:
