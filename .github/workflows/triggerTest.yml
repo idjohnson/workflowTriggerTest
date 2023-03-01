@@ -30,6 +30,34 @@ jobs:
         run: |
           az account show
           az group list
+      - name: 'Check AKV'
+        run: |
+          az keyvault secret show --vault-name wldemokv --name sessmtppass -o json | jq -r .value > sessmtppass
+          az keyvault secret show --vault-name wldemokv --name sessmtpuser -o json | jq -r .value > sessmtpuser
+          
+          sudo apt-get update
+          sudo apt-get install -y s-nail || true
+
+          cat >rawDescription <<EOOOOL
+          ${{ github.event.client_payload.description }}
+          EOOOOL
+
+          cat >rawSummary <<EOOOOT
+          ${{ github.event.client_payload.summary }}
+          EOOOOT
+          
+          set -x
+          cat rawSummary |sed ':a;N;$!ba;s/\n/ /g' | sed 's/"/\\"/g' > emailSummary
+          
+          export USERTLD=`echo "${{ github.event.client_payload.userid }}" | sed 's/^.*@//'`
+
+          if [[ "$USERTLD" == "dontemailme.com" ]]; then
+            # do not CC user
+            echo "<h1>New Feature Requested</h1><p>user ${{ github.event.client_payload.userid }} has requested "`cat emailSummary`"</p><p>https://dev.azure.com/princessking/ghost-blog/_workitems/edit/$WIID/</p><br/><br/>Kind Regards,<br/>Isaac Johnson" | s-nail -s "Blog: Feature $WIID Requested" -M "text/html" -S smtp=email-smtp.us-east-1.amazonaws.com:587 -S smtp-use-starttls -S ssl-verify=ignore -S smtp-auth=login -S smtp-auth-user=`cat sessmtpuser` -S smtp-auth-password=`cat sessmtppass` -c isaac.johnson@gmail.com -r isaac@freshbrewed.science isaac.johnson@gmail.com
+          else
+            # may not work
+            echo "<h1>New Feature Requested</h1><p>user ${{ github.event.client_payload.userid }} has requested "`cat emailSummary`"</p><p>https://dev.azure.com/princessking/ghost-blog/_workitems/edit/$WIID/</p><br/><br/>Kind Regards,<br/>Isaac Johnson" | s-nail -s "Blog: Feature $WIID Requested" -M "text/html" -S smtp=email-smtp.us-east-1.amazonaws.com:587 -S smtp-use-starttls -S ssl-verify=ignore -S smtp-auth=login -S smtp-auth-user=`cat sessmtpuser` -S smtp-auth-password=`cat sessmtppass` -c ${{ github.event.client_payload.userid }} -r isaac@freshbrewed.science isaac.johnson@gmail.com
+          fi
 
   run_if_failure:
     if: ${{ !github.event }}
