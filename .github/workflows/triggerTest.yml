@@ -16,6 +16,16 @@ jobs:
       - env:
           MESSAGE: ${{ github.event.client_payload.description }}
         run: echo $MESSAGE
+      - name: 'Az CLI login'
+        uses: azure/login@v1
+        with:
+          client-id: '${{ secrets.AZAPPID }}'
+          tenant-id: '${{ secrets.AZTENTID }}'
+          subscription-id: '${{ secrets.AZSUBID }}'
+      - name: 'Run az commands'
+        run: |
+          az account show
+          az group list
 
   run_if_failure:
     if: ${{ !github.event }}
