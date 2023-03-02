@@ -49,7 +49,7 @@ jobs:
           set -x
           cat rawSummary |sed ':a;N;$!ba;s/\n/ /g' | sed 's/"/\\"/g' > emailSummary
           
-          data="$( jq -nc --arg title "${{ github.event.client_payload.summary }}" --arg body "${{ github.event.client_payload.description }} :: Requested by ${{ parameters.feedbackForm.userId }}" '$ARGS.named')"
+          data="$( jq -nc --arg title "${{ github.event.client_payload.summary }}" --arg body "${{ github.event.client_payload.description }} :: Requested by ${{ github.event.client_payload.userid }}" '$ARGS.named')"
           cat >emailJson2.json <<EOTT
           $data
           EOTT
