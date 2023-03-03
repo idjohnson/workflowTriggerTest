@@ -61,7 +61,15 @@ jobs:
 
           export USERTLD=`echo "${{ github.event.client_payload.userid }}" | sed 's/^.*@//'`
 
-          export GHURL=`cat gh.o.json | jq -r .url`
+          export GHURL=`cat gh.o.json | jq -r .html_url`
+         
+          # Slack Notification 
+          slackdata="$( jq -nc --arg text "Feature Request $GHURL: ${{ github.event.client_payload.summary }} Requested by ${{ github.event.client_payload.userid }}" '$ARGS.named')"
+          cat >slackjson.json <<EOTT
+          $slackdata
+          EOTT
+
+          curl -X POST -H 'Content-type: application/json' `az keyvault secret show --vault-name wldemokv --name slackbuildswh -o json | jq -r .value | tr -d '\n'` -d @slackjson.json
 
           # Now Send Email
           if [[ "$USERTLD" == "dontemailme.com" ]]; then
@@ -71,10 +79,6 @@ jobs:
             # may not work
             echo "<h1>New Feature Requested</h1><p>user ${{ github.event.client_payload.userid }} has requested "`cat emailSummary`"</p><p>$GHURL</p><br/><br/>Kind Regards,<br/>Isaac Johnson" | s-nail -s "Blog: Feature $WIID Requested" -M "text/html" -S smtp=email-smtp.us-east-1.amazonaws.com:587 -S smtp-use-starttls -S ssl-verify=ignore -S smtp-auth=login -S smtp-auth-user=`cat sessmtpuser` -S smtp-auth-password=`cat sessmtppass` -c ${{ github.event.client_payload.userid }} -r isaac@freshbrewed.science isaac.johnson@gmail.com
           fi
-          
-          az keyvault secret show --vault-name wldemokv --name slackbuildswh -o json | jq -r .value > slackbuildswh
-
-          
 
   run_if_failure:
     runs-on: ubuntu-latest
@@ -89,7 +93,15 @@ jobs:
           sudo apt-get install -y s-nail || true
           
           export USERTLD=`echo "${{ github.event.client_payload.userid }}" | sed 's/^.*@//'`
-          echo "<h1>New Feature Requested</h1><p>user ${{ github.event.client_payload.userid }} but the formatting must have failed.  Please check the pipeline!" | s-nail -s "Blog: Feature Requested (FAIL processing)" -M "text/html" -S smtp=email-smtp.us-east-1.amazonaws.com:587 -S smtp-use-starttls -S ssl-verify=ignore -S smtp-auth=login -S smtp-auth-user=`cat sessmtpuser` -S smtp-auth-password=`cat sessmtppass` -c isaac.johnson@gmail.com -r isaac@freshbrewed.science isaac.johnson@gmail.com
+          echo "<h1>New Feature Requested</h1><p>user ${{ github.event.client_payload.userid }} but the formatting must have failed.  Please check the pipeline: Run ID $GITHUB_RUN_ID!" | s-nail -s "Blog: Feature Requested (FAIL processing)" -M "text/html" -S smtp=email-smtp.us-east-1.amazonaws.com:587 -S smtp-use-starttls -S ssl-verify=ignore -S smtp-auth=login -S smtp-auth-user=`cat sessmtpuser` -S smtp-auth-password=`cat sessmtppass` -c isaac.johnson@gmail.com -r isaac@freshbrewed.science isaac.johnson@gmail.com
+
+          # Slack Notification 
+          slackdata="$( jq -nc --arg text "Feature Request Issue Create Failure: see $GITHUB_JOB on Run $GITHUB_RUN_ID :: requested by ${{ github.event.client_payload.userid }}" '$ARGS.named')"
+          cat >slackjson.json <<EOTT
+          $slackdata
+          EOTT
+
+          curl -X POST -H 'Content-type: application/json' `az keyvault secret show --vault-name wldemokv --name slackbuildswh -o json | jq -r .value | tr -d '\n'` -d @slackjson.json
       - env:
           MESSAGE: ${{ github.event.client_payload.message }}
         run: echo $MESSAGE
