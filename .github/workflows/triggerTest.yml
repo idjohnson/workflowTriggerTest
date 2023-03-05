@@ -43,7 +43,7 @@ jobs:
                   {
                     "content": [
                       {
-                        "text": "${{ github.event.client_payload.description }}",
+                        "text": "${{ github.event.client_payload.description }} :: Requested by ${{ github.event.client_payload.userid }}",
                         "type": "text"
                       }
                     ],
