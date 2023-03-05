@@ -30,6 +30,46 @@ jobs:
         run: |
           az account show
           az group list
+      - name: 'JIRA Create'
+        run: |
+          az keyvault secret show --vault-name wldemokv --name jiraapitoken -o json | jq -r .value > jiraapitoken
+
+          # Create in Hosted Atlassian
+          cat >jiraJSON <<EOT
+          {
+            "fields": {
+              "description": {
+                "content": [
+                  {
+                    "content": [
+                      {
+                        "text": "${{ github.event.client_payload.description }}",
+                        "type": "text"
+                      }
+                    ],
+                    "type": "paragraph"
+                  }
+                ],
+                "type": "doc",
+                "version": 1
+              },
+              "issuetype": {
+                "id": "10001"
+              },
+              "labels": [
+                "UserAsk"
+              ],
+              "project": {
+                "id": "10000"
+              },
+              "summary": "${{ github.event.client_payload.summary }}"
+            },
+            "update": {}
+          }
+          EOT
+
+          curl --request POST --url "https://freshbrewed.atlassian.net/rest/api/3/issue" -u 'isaac@freshbrewed.science':"`cat jiraapitoken | tr -d '\n'`" --header 'Accept: application/json' --header 'Content-Type: application/json' -d @jiraJSON 
+
       - name: 'Check AKV'
         run: |
           az keyvault secret show --vault-name wldemokv --name sessmtppass -o json | jq -r .value > sessmtppass
