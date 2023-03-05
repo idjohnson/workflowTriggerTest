@@ -111,6 +111,14 @@ jobs:
 
           curl -X POST -H 'Content-type: application/json' `az keyvault secret show --vault-name wldemokv --name slackbuildswh -o json | jq -r .value | tr -d '\n'` -d @slackjson.json
 
+          # Discord
+          discorddata="$( jq -nc --arg content "Feature Request $GHURL: ${{ github.event.client_payload.summary }} Requested by ${{ github.event.client_payload.userid }}" '$ARGS.named')"
+          cat >discorddata.json <<EOTT
+          $discorddata
+          EOTT
+
+          curl -X POST -H "Content-Type:application/json" -d @discorddata.json `az keyvault secret show --vault-name wldemokv --name discordwhurlgeneral -o json | jq -r .value | tr -d '\n'`
+          
           # Now Send Email
           if [[ "$USERTLD" == "dontemailme.com" ]]; then
             # do not CC user
@@ -126,6 +134,7 @@ jobs:
     if: always() && (needs.run_if_payload.result == 'failure')
     steps:
       - run: |
+          # Email
           az keyvault secret show --vault-name wldemokv --name sessmtppass -o json | jq -r .value > sessmtppass
           az keyvault secret show --vault-name wldemokv --name sessmtpuser -o json | jq -r .value > sessmtpuser
           
@@ -142,6 +151,14 @@ jobs:
           EOTT
 
           curl -X POST -H 'Content-type: application/json' `az keyvault secret show --vault-name wldemokv --name slackbuildswh -o json | jq -r .value | tr -d '\n'` -d @slackjson.json
+
+          # Discord Notification
+          discorddata="$( jq -nc --arg content "Feature Request Issue Create Failure: ${{ github.event.client_payload.summary }} Requested by ${{ github.event.client_payload.userid }}" '$ARGS.named')"
+          cat >discorddata.json <<EOTT
+          $discorddata
+          EOTT
+
+          curl -X POST -H "Content-Type:application/json" -d @discorddata.json `az keyvault secret show --vault-name wldemokv --name discordwhurlgeneral -o json | jq -r .value | tr -d '\n'`
       - env:
           MESSAGE: ${{ github.event.client_payload.message }}
         run: echo $MESSAGE
