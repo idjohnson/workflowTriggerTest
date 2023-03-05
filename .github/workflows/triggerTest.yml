@@ -119,6 +119,14 @@ jobs:
 
           curl -X POST -H "Content-Type:application/json" -d @discorddata.json `az keyvault secret show --vault-name wldemokv --name discordwhurlgeneral -o json | jq -r .value | tr -d '\n'`
           
+          # Keybase
+          keybasedata="$( jq -nc --arg msg "Feature Request $GHURL: ${{ github.event.client_payload.summary }} Requested by ${{ github.event.client_payload.userid }}" '$ARGS.named')"
+          cat >keybasedata.json <<EOTT
+          $keybasedata
+          EOTT
+
+          curl -X POST -H "Content-Type:application/json" -d @keybasedata.json `az keyvault secret show --vault-name wldemokv --name keybasebottpk -o json | jq -r .value | tr -d '\n'`
+          
           # Now Send Email
           if [[ "$USERTLD" == "dontemailme.com" ]]; then
             # do not CC user
@@ -159,6 +167,15 @@ jobs:
           EOTT
 
           curl -X POST -H "Content-Type:application/json" -d @discorddata.json `az keyvault secret show --vault-name wldemokv --name discordwhurlgeneral -o json | jq -r .value | tr -d '\n'`
+
+          # Keybase
+          keybasedata="$( jq -nc --arg msg "Feature Request Issue Create Failure: ${{ github.event.client_payload.summary }} Requested by ${{ github.event.client_payload.userid }}" '$ARGS.named')"
+          cat >keybasedata.json <<EOTT
+          $keybasedata
+          EOTT
+
+          curl -X POST -H "Content-Type:application/json" -d @keybasedata.json `az keyvault secret show --vault-name wldemokv --name keybasebottpk -o json | jq -r .value | tr -d '\n'`
+          
       - env:
           MESSAGE: ${{ github.event.client_payload.message }}
         run: echo $MESSAGE
