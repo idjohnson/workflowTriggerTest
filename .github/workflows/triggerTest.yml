@@ -29,10 +29,6 @@ jobs:
           client-id: '${{ secrets.AZAPPID }}'
           tenant-id: '${{ secrets.AZTENTID }}'
           subscription-id: '${{ secrets.AZSUBID }}'
-      - name: 'Run az commands'
-        run: |
-          az account show
-          az group list
       - name: 'JIRA Create'
         run: |
           az keyvault secret show --vault-name wldemokv --name jiraapitoken -o json | jq -r .value > jiraapitoken
@@ -170,6 +166,35 @@ jobs:
     needs: run_if_payload
     if: always() && (needs.run_if_payload.result == 'failure')
     steps:
+      - name: Datadog-Fail
+        uses: masci/datadog@v1
+        with:
+          api-key: ${{ secrets.DATADOG_API_KEY }}
+          events: |
+            - title: "Failed building Feedback"
+              text: "Branch ${{ github.head_ref }} failed to build"
+              alert_type: "error"
+              host: ${{ github.repository_owner }}
+              tags:
+                - "project:${{ github.repository }}"
+      - name: Fail count
+        uses: masci/datadog@v1
+        with:
+          api-key: ${{ secrets.DATADOG_API_KEY }}
+          metrics: |
+            - type: "count"
+              name: "prfinal.fails.count"
+              value: 1.0
+              host: ${{ github.repository_owner }}
+              tags:
+                - "project:${{ github.repository }}"
+                - "branch:${{ github.head_ref }}"
+      - name: 'Az CLI login'
+        uses: azure/login@v1
+        with:
+          client-id: '${{ secrets.AZAPPID }}'
+          tenant-id: '${{ secrets.AZTENTID }}'
+          subscription-id: '${{ secrets.AZSUBID }}'
       - run: |
           # Email
           az keyvault secret show --vault-name wldemokv --name sessmtppass -o json | jq -r .value > sessmtppass
@@ -207,26 +232,3 @@ jobs:
       - env:
           MESSAGE: ${{ github.event.client_payload.message }}
         run: echo $MESSAGE
-      - name: Datadog-Fail
-        uses: masci/datadog@v1
-        with:
-          api-key: ${{ secrets.DATADOG_API_KEY }}
-          events: |
-            - title: "Failed building Feedback"
-              text: "Branch ${{ github.head_ref }} failed to build"
-              alert_type: "error"
-              host: ${{ github.repository_owner }}
-              tags:
-                - "project:${{ github.repository }}"
-      - name: Fail count
-        uses: masci/datadog@v1
-        with:
-          api-key: ${{ secrets.DATADOG_API_KEY }}
-          metrics: |
-            - type: "count"
-              name: "prfinal.fails.count"
-              value: 1.0
-              host: ${{ github.repository_owner }}
-              tags:
-                - "project:${{ github.repository }}"
-                - "branch:${{ github.head_ref }}"
