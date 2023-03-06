@@ -134,6 +134,45 @@ jobs:
             # may not work
             echo "<h1>New Feature Requested</h1><p>user ${{ github.event.client_payload.userid }} has requested "`cat emailSummary`"</p><p>$GHURL</p><br/><br/>Kind Regards,<br/>Isaac Johnson" | s-nail -s "Blog: Feature $WIID Requested" -M "text/html" -S smtp=email-smtp.us-east-1.amazonaws.com:587 -S smtp-use-starttls -S ssl-verify=ignore -S smtp-auth=login -S smtp-auth-user=`cat sessmtpuser` -S smtp-auth-password=`cat sessmtppass` -c ${{ github.event.client_payload.userid }} -r isaac@freshbrewed.science isaac.johnson@gmail.com
           fi
+
+          # Teams
+          export SUMMARY="`jq -nc --arg text "${{ github.event.client_payload.summary }}" '$ARGS.named' | jq -r .text | sed 's/[^[:alnum:]_-]/ /g'`"
+          export DESCRIPTION="`jq -nc --arg text "${{ github.event.client_payload.description }}" '$ARGS.named' | jq -r .text | sed 's/[^[:alnum:]_-]/ /g'`"
+
+          cat > ./post.json <<endmsg
+          {
+                  "@type": "MessageCard",
+                  "@context": "https://schema.org/extensions",
+                  "summary": "New Feedback Form",
+                  "themeColor": "0078D7",
+                  "sections": [
+                          {
+                                  "activityImage": "https://ca.slack-edge.com/T4AQPQN8M-U4AL2JFC3-g45c8854734a-48",
+                                  "activityTitle": "Feedback Form Submission",
+                                  "activitySubtitle": "New Issue",
+                                  "facts": [
+                                          {
+                                                  "name": "Requestor:",
+                                                  "value": "${{ github.event.client_payload.userid }}"
+                                          },
+                                          {
+                                                  "name": "Summary:",
+                                                  "value": "$SUMMARY"
+                                          }
+                                  ],
+                                  "text": "$GHURL - $DESCRIPTION",
+                                  "potentialAction": [
+                                          {
+                                                  "@type": "OpenUri",
+                                                  "name": "View conversation"
+                                          }
+                                  ]
+                          }
+                  ]
+          }
+          endmsg
+
+          curl -X POST -H "Content-Type: application/json" -d @post.json `az keyvault secret show --vault-name wldemokv --name msteamsgeneralfeedbackform -o json | jq -r .value | tr -d '\n'`
       - name: Build count
         uses: masci/datadog@v1
         with:
@@ -229,6 +268,44 @@ jobs:
           EOTT
 
           curl -X POST -H "Content-Type:application/json" -d @keybasedata.json `az keyvault secret show --vault-name wldemokv --name keybasebottpk -o json | jq -r .value | tr -d '\n'`
+          # Teams
+          export SUMMARY="`jq -nc --arg text "${{ github.event.client_payload.summary }}" '$ARGS.named' | jq -r .text | sed 's/[^[:alnum:]_-]/ /g'`"
+          export DESCRIPTION="`jq -nc --arg text "${{ github.event.client_payload.description }}" '$ARGS.named' | jq -r .text | sed 's/[^[:alnum:]_-]/ /g'`"
+
+          cat > ./post.json <<endmsg
+          {
+                  "@type": "MessageCard",
+                  "@context": "https://schema.org/extensions",
+                  "summary": "New Feedback Form (error)",
+                  "themeColor": "0078D7",
+                  "sections": [
+                          {
+                                  "activityImage": "https://ca.slack-edge.com/T4AQPQN8M-U4AL2JFC3-g45c8854734a-48",
+                                  "activityTitle": "Feedback Form Submission (error)",
+                                  "activitySubtitle": "New Issue",
+                                  "facts": [
+                                          {
+                                                  "name": "Requestor:",
+                                                  "value": "${{ github.event.client_payload.userid }}"
+                                          },
+                                          {
+                                                  "name": "Summary:",
+                                                  "value": "$SUMMARY"
+                                          }
+                                  ],
+                                  "text": "$DESCRIPTION",
+                                  "potentialAction": [
+                                          {
+                                                  "@type": "OpenUri",
+                                                  "name": "View conversation"
+                                          }
+                                  ]
+                          }
+                  ]
+          }
+          endmsg
+
+          curl -X POST -H "Content-Type: application/json" -d @post.json `az keyvault secret show --vault-name wldemokv --name msteamsgeneralfeedbackform -o json | jq -r .value | tr -d '\n'`
       - env:
           MESSAGE: ${{ github.event.client_payload.message }}
         run: echo $MESSAGE
