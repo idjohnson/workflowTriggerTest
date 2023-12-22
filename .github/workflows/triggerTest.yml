@@ -69,6 +69,27 @@ jobs:
 
           curl --request POST --url "https://freshbrewed.atlassian.net/rest/api/3/issue" -u 'isaac@freshbrewed.science':"`cat jiraapitoken | tr -d '\n'`" --header 'Accept: application/json' --header 'Content-Type: application/json' -d @jiraJSON 
 
+      - name: 'Plane.so Create'
+        run: |
+          az keyvault secret show --vault-name wldemokv --name planesotoken -o json | jq -r .value > planesotoken
+
+          # Create in Hosted Atlassian
+          cat >planeJSON <<EOT
+          {
+            "estimate_point": null,
+            "name": "${{ github.event.client_payload.summary }}",
+            "description_html": "<p>${{ github.event.client_payload.description }} :: Requested by ${{ github.event.client_payload.userid }}</p>",
+            "description_stripped": "${{ github.event.client_payload.description }} :: Requested by ${{ github.event.client_payload.userid }}",
+            "priority": "none",
+            "is_draft": false,
+            "labels": [
+              "93fcb710-94bf-4e8c-b419-9e6dfbee660f"
+            ]
+          }
+          EOT
+
+          curl --request POST --url "https://api.plane.so/api/v1/workspaces/tpk/projects/9ca799e6-52c4-4a9e-8b40-461eef4f57e9/issues/" -H "X-API-Key: `cat planesotoken | tr -d '\n'`" -H 'Content-Type: application/json' --header 'Accept: application/json' -d @planeJSON 
+
       - name: 'Check AKV'
         run: |
           az keyvault secret show --vault-name wldemokv --name sessmtppass -o json | jq -r .value > sessmtppass
