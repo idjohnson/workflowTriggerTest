@@ -118,6 +118,7 @@ jobs:
           echo "DEBUG:"
           cat ./emailJson2.json
           
+          # Github Issues
           curl -X POST -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer `az keyvault secret show --vault-name wldemokv --name My90DayGHIssueWriter -o json | jq -r .value | tr -d '\n'`" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
@@ -127,6 +128,18 @@ jobs:
 
           export GHURL=`cat gh.o.json | jq -r .html_url`
          
+          # Post to Vikunja
+          echo '{"long_token":true,"password":"' > login.json
+          az keyvault secret show --vault-name wldemokv --name vikunja-fbformuser-password -o json | jq -r .value | tr -d '\n' >> login.json
+          echo '","username":"fbformuser"}' >> login.json
+
+          curl -X POST -H "Content-Type: application/json" -d @login.json https://vikunja.steeped.space/api/v1/login > fbfu.token
+
+          # Github uses "body" and Vikunja uses "description"
+          sed -i 's/"body"/"description"/g' ./emailJson2.json
+
+          curl -X PUT -H "Content-Type: application/json" -H "Accept: application/json" -H "Authorization: Bearer `cat fbfu.token | jq -r .token | tr -d '\n'`" https://vikunja.steeped.space/api/v1/projects/2/tasks -d @emailJson2.json
+
           # Slack Notification 
           slackdata="$( jq -nc --arg text "Feature Request $GHURL: ${{ github.event.client_payload.summary }} Requested by ${{ github.event.client_payload.userid }}" '$ARGS.named')"
           cat >slackjson.json <<EOTT
