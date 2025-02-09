@@ -138,7 +138,8 @@ jobs:
           # Github uses "body" and Vikunja uses "description"
           sed -i 's/"body"/"description"/g' ./emailJson2.json
 
-          curl -X PUT -H "Content-Type: application/json" -H "Accept: application/json" -H "Authorization: Bearer `cat fbfu.token | jq -r .token | tr -d '\n'`" https://vikunja.steeped.space/api/v1/projects/2/tasks -d @emailJson2.json
+          # Projects 1 is Inbox
+          curl -X PUT -H "Content-Type: application/json" -H "Accept: application/json" -H "Authorization: Bearer `cat fbfu.token | jq -r .token | tr -d '\n'`" https://vikunja.steeped.space/api/v1/projects/1/tasks -d @emailJson2.json
 
           # Slack Notification 
           slackdata="$( jq -nc --arg text "Feature Request $GHURL: ${{ github.event.client_payload.summary }} Requested by ${{ github.event.client_payload.userid }}" '$ARGS.named')"
